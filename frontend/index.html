@@ -1,0 +1,1270 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ExamVault — Online Exam Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:       #0a0e1a;
+    --surface:  #111827;
+    --surface2: #1a2235;
+    --border:   #1e2d45;
+    --accent:   #3b82f6;
+    --accent2:  #06b6d4;
+    --gold:     #f59e0b;
+    --green:    #10b981;
+    --red:      #ef4444;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --white:    #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 240px; min-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    position: sticky; top: 0; height: 100vh;
+    overflow-y: auto;
+  }
+  .logo {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .logo-sub { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
+  .nav { padding: 12px 0; flex: 1; }
+  .nav-section { padding: 8px 20px 4px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; font-family: 'DM Mono', monospace; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px; cursor: pointer;
+    font-size: 13.5px; color: var(--muted);
+    transition: all 0.15s; border-left: 3px solid transparent;
+    font-weight: 400;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(59,130,246,0.08); font-weight: 500; }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+  .main { flex: 1; padding: 28px 32px; overflow-y: auto; }
+  .page-header { margin-bottom: 28px; }
+  .page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 700; color: var(--white); }
+  .page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+    position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  .stat-val { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--white); }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .stat-icon { position: absolute; right: 16px; top: 16px; font-size: 22px; opacity: 0.4; }
+  .toolbar {
+    display: flex; gap: 12px; align-items: center;
+    margin-bottom: 18px; flex-wrap: wrap;
+  }
+  .search-box {
+    flex: 1; min-width: 220px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 14px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13.5px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: var(--muted); }
+  .btn {
+    padding: 9px 18px; border-radius: 8px; border: none;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .btn-danger:hover { background: rgba(239,68,68,0.25); }
+  .btn-success { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+  .table-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+  }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--surface2); }
+  thead th {
+    padding: 12px 16px; text-align: left;
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px;
+    white-space: nowrap; font-weight: 500;
+  }
+  tbody tr { border-top: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 11px 16px; color: var(--text); white-space: nowrap; }
+  .code { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent2); }
+  .nav-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 16px; border-top: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .nav-bar span { font-size: 12px; color: var(--muted); margin: 0 8px; font-family: 'DM Mono', monospace; }
+  .badge {
+    display: inline-block; padding: 2px 9px; border-radius: 99px;
+    font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace;
+  }
+  .badge-a    { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+  .badge-b    { background: rgba(59,130,246,0.15); color: var(--accent); border: 1px solid rgba(59,130,246,0.3); }
+  .badge-c    { background: rgba(245,158,11,0.15); color: var(--gold); border: 1px solid rgba(245,158,11,0.3); }
+  .badge-fail { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .badge-pass { background: rgba(16,185,129,0.15); color: var(--green); }
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; backdrop-filter: blur(4px);
+  }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; width: 500px; max-width: 95vw;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  }
+  .modal-title {
+    font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+    color: var(--white); margin-bottom: 20px;
+  }
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-label .required { color: var(--red); margin-left: 2px; }
+  .form-label .hint { color: var(--muted); font-size: 10px; margin-left: 6px; font-weight: 400; text-transform: none; opacity: 0.7; }
+  .form-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13.5px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-input.invalid { border-color: var(--red); }
+  .form-input option { background: var(--surface); }
+  .field-error { font-size: 11px; color: var(--red); margin-top: 4px; font-family: 'DM Mono', monospace; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .modal-section { font-size: 11px; color: var(--accent2); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 1px; margin: 20px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 20px;
+    font-size: 13.5px; z-index: 2000;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    animation: slideUp 0.3s ease;
+    max-width: 320px;
+  }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error   { border-left: 3px solid var(--red);   }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .grade-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .grade-item {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 10px 16px; border-radius: 8px;
+  }
+  .grade-score { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); }
+  .welcome {
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f2a4a 100%);
+    border: 1px solid #1e4a7a; border-radius: 14px; padding: 28px;
+    margin-bottom: 24px; position: relative; overflow: hidden;
+  }
+  .welcome::after {
+    content: '📚'; position: absolute; right: 28px; top: 50%;
+    transform: translateY(-50%); font-size: 56px; opacity: 0.15;
+  }
+  .welcome h2 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: var(--white); }
+  .welcome p  { font-size: 13.5px; color: #94a3b8; margin-top: 6px; }
+  .empty { text-align: center; padding: 48px; color: var(--muted); font-size: 13.5px; }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; color: var(--white); margin-bottom: 12px; }
+  .info-box {
+    background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 8px; padding: 12px 16px; font-size: 12.5px; color: #93c5fd;
+    margin-bottom: 16px; font-family: 'DM Mono', monospace; line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script>
+const { useState, useEffect, useCallback } = React;
+const API = 'http://localhost:5000/api';
+
+// ── Grade Calculator ──────────────────────────────────────────
+function calcGrade(m) {
+  const n = parseFloat(m);
+  if (n >= 90) return { grade: 'A', status: 'Pass' };
+  if (n >= 75) return { grade: 'B', status: 'Pass' };
+  if (n >= 50) return { grade: 'C', status: 'Pass' };
+  return { grade: 'Fail', status: 'Fail' };
+}
+
+// ── Validation helpers ────────────────────────────────────────
+const validators = {
+  required:    v => (!v || String(v).trim() === '') ? 'This field is required' : null,
+  email:       v => v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? 'Invalid email format' : null,
+  phone:       v => v && !/^\d{10}$/.test(v) ? 'Must be exactly 10 digits' : null,
+  semester:    v => v && (parseInt(v) < 1 || parseInt(v) > 8) ? 'Semester must be 1–8' : null,
+  credits:     v => v && (parseInt(v) < 1 || parseInt(v) > 10) ? 'Credits must be 1–10' : null,
+  marks:       v => v !== '' && v !== undefined && (parseFloat(v) < 0 || parseFloat(v) > 100) ? 'Marks must be 0–100' : null,
+  duration:    v => v && (parseInt(v) < 10 || parseInt(v) > 300) ? 'Duration must be 10–300 minutes' : null,
+  totalMarks:  v => v && (parseInt(v) < 1 || parseInt(v) > 500) ? 'Total marks must be 1–500' : null,
+  qMarks:      v => v && (parseInt(v) < 1 || parseInt(v) > 100) ? 'Question marks must be 1–100' : null,
+  insCode:     v => v && !/^[A-Z0-9_-]{3,20}$/.test(v) ? 'Use 3–20 uppercase letters/digits only' : null,
+  regNo:       v => v && !/^[A-Z0-9]{5,20}$/.test(v) ? 'Use 5–20 uppercase alphanumeric characters' : null,
+  courseID:    v => v && !/^[A-Z0-9]{3,20}$/.test(v) ? 'Use 3–20 uppercase alphanumeric characters' : null,
+  posInt:      v => v && (isNaN(parseInt(v)) || parseInt(v) <= 0) ? 'Must be a positive integer' : null,
+};
+
+function validate(rules, values) {
+  const errors = {};
+  for (const [key, fns] of Object.entries(rules)) {
+    for (const fn of fns) {
+      const err = fn(values[key]);
+      if (err) { errors[key] = err; break; }
+    }
+  }
+  return errors;
+}
+
+// ── Toast ─────────────────────────────────────────────────────
+function Toast({ msg, type, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
+  return React.createElement('div', { className: `toast ${type}` }, msg);
+}
+
+// ── Badge helpers ─────────────────────────────────────────────
+function GradeBadge({ grade }) {
+  const cls = { A: 'badge-a', B: 'badge-b', C: 'badge-c', Fail: 'badge-fail' }[grade] || 'badge-c';
+  return React.createElement('span', { className: `badge ${cls}` }, grade);
+}
+function StatusBadge({ status }) {
+  return React.createElement('span', {
+    className: `badge ${status === 'Pass' ? 'badge-pass' : 'badge-fail'}`
+  }, status);
+}
+
+// ── Nav Bar ───────────────────────────────────────────────────
+function NavBar({ idx, total, onFirst, onPrev, onNext, onLast }) {
+  if (total === 0) return null;
+  return React.createElement('div', { className: 'nav-bar' },
+    React.createElement('button', { className: 'btn btn-ghost btn-sm', onClick: onFirst }, '⏮ First'),
+    React.createElement('button', { className: 'btn btn-ghost btn-sm', onClick: onPrev, disabled: idx === 0 }, '◀ Prev'),
+    React.createElement('span', null, `Record ${idx + 1} of ${total}`),
+    React.createElement('button', { className: 'btn btn-ghost btn-sm', onClick: onNext, disabled: idx === total - 1 }, 'Next ▶'),
+    React.createElement('button', { className: 'btn btn-ghost btn-sm', onClick: onLast }, 'Last ⏭'),
+  );
+}
+
+// ── Reusable DataTable ────────────────────────────────────────
+function DataTable({ columns, data, onAdd, onEdit, onDelete, searchPlaceholder, addLabel }) {
+  const [search, setSearch] = useState('');
+  const [navIdx, setNavIdx] = useState(0);
+  const filtered = data.filter(row =>
+    Object.values(row).some(v => String(v ?? '').toLowerCase().includes(search.toLowerCase()))
+  );
+  useEffect(() => { setNavIdx(0); }, [search]);
+  return React.createElement('div', null,
+    React.createElement('div', { className: 'toolbar' },
+      React.createElement('input', {
+        className: 'search-box',
+        placeholder: searchPlaceholder || '🔍  Search records...',
+        value: search,
+        onChange: e => setSearch(e.target.value)
+      }),
+      onAdd && React.createElement('button', { className: 'btn btn-primary', onClick: onAdd }, addLabel || '+ Add New'),
+    ),
+    React.createElement('div', { className: 'table-card' },
+      React.createElement('div', { className: 'table-wrap' },
+        React.createElement('table', null,
+          React.createElement('thead', null,
+            React.createElement('tr', null,
+              ...columns.map(c => React.createElement('th', { key: c.key }, c.label)),
+              (onEdit || onDelete) && React.createElement('th', null, 'ACTIONS')
+            )
+          ),
+          React.createElement('tbody', null,
+            filtered.length === 0
+              ? React.createElement('tr', null,
+                  React.createElement('td', { colSpan: columns.length + 1, className: 'empty' },
+                    React.createElement('div', { className: 'empty-icon' }, '🗂'),
+                    'No records found'
+                  )
+                )
+              : filtered.map((row, i) =>
+                  React.createElement('tr', {
+                    key: i,
+                    style: navIdx === i ? { background: 'rgba(59,130,246,0.12)' } : {},
+                    onClick: () => setNavIdx(i)
+                  },
+                    ...columns.map(c =>
+                      React.createElement('td', { key: c.key },
+                        c.render ? c.render(row[c.key], row) :
+                        c.code ? React.createElement('span', { className: 'code' }, row[c.key]) :
+                        (row[c.key] ?? '—')
+                      )
+                    ),
+                    (onEdit || onDelete) && React.createElement('td', null,
+                      React.createElement('div', { style: { display: 'flex', gap: 6 } },
+                        onEdit   && React.createElement('button', { className: 'btn btn-ghost btn-sm',  onClick: e => { e.stopPropagation(); onEdit(row); } }, '✏️'),
+                        onDelete && React.createElement('button', { className: 'btn btn-danger btn-sm', onClick: e => { e.stopPropagation(); onDelete(row); } }, '🗑')
+                      )
+                    )
+                  )
+                )
+          )
+        )
+      ),
+      React.createElement(NavBar, {
+        idx: navIdx, total: filtered.length,
+        onFirst: () => setNavIdx(0),
+        onPrev:  () => setNavIdx(i => Math.max(0, i - 1)),
+        onNext:  () => setNavIdx(i => Math.min(filtered.length - 1, i + 1)),
+        onLast:  () => setNavIdx(filtered.length - 1),
+      })
+    )
+  );
+}
+
+// ── Modal Form (with inline validation) ──────────────────────
+function Modal({ title, fields, values, onChange, onSave, onClose, extra, errors }) {
+  return React.createElement('div', { className: 'modal-overlay', onClick: e => e.target === e.currentTarget && onClose() },
+    React.createElement('div', { className: 'modal' },
+      React.createElement('div', { className: 'modal-title' }, title),
+      ...fields.map(f => {
+        if (f.type === 'section') return React.createElement('div', { className: 'modal-section', key: f.key }, f.label);
+        const err = errors && errors[f.key];
+        return React.createElement('div', { className: 'form-group', key: f.key },
+          React.createElement('label', { className: 'form-label' },
+            f.label,
+            f.required && React.createElement('span', { className: 'required' }, ' *'),
+            f.hint && React.createElement('span', { className: 'hint' }, f.hint)
+          ),
+          f.type === 'select'
+            ? React.createElement('select', {
+                className: `form-input${err ? ' invalid' : ''}`,
+                value: values[f.key] || '',
+                onChange: e => onChange(f.key, e.target.value)
+              },
+                React.createElement('option', { value: '' }, `— Select ${f.label} —`),
+                ...f.options.map(o => React.createElement('option', { key: o.value, value: o.value }, o.label))
+              )
+            : f.type === 'textarea'
+            ? React.createElement('textarea', {
+                className: `form-input${err ? ' invalid' : ''}`, rows: 3,
+                value: values[f.key] || '', placeholder: f.placeholder,
+                onChange: e => onChange(f.key, e.target.value)
+              })
+            : React.createElement('input', {
+                className: `form-input${err ? ' invalid' : ''}`,
+                type: f.type || 'text',
+                value: values[f.key] || '',
+                placeholder: f.placeholder,
+                min: f.min, max: f.max,
+                onChange: e => onChange(f.key, e.target.value)
+              }),
+          err && React.createElement('div', { className: 'field-error' }, '⚠ ' + err)
+        );
+      }),
+      extra,
+      React.createElement('div', { className: 'modal-actions' },
+        React.createElement('button', { className: 'btn btn-ghost', onClick: onClose }, 'Cancel'),
+        React.createElement('button', { className: 'btn btn-primary', onClick: onSave }, 'Save')
+      )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DEMO DATA
+// ══════════════════════════════════════════════════════════════
+const DEMO_STUDENTS = [
+  { reg_no: 'CS2021001', name: 'Arjun Sharma',  email: 'arjun@college.edu', department: 'Computer Science', semester: 6, phone: '9876543210' },
+  { reg_no: 'CS2021002', name: 'Priya Nair',    email: 'priya@college.edu', department: 'Computer Science', semester: 6, phone: '9876543211' },
+  { reg_no: 'EC2021003', name: 'Kiran Mehta',   email: 'kiran@college.edu', department: 'Electronics',      semester: 4, phone: '9876543212' },
+  { reg_no: 'ME2021004', name: 'Sneha Rao',     email: 'sneha@college.edu', department: 'Mechanical',       semester: 4, phone: '9876543213' },
+  { reg_no: 'CS2022005', name: 'Rahul Verma',   email: 'rahul@college.edu', department: 'Computer Science', semester: 2, phone: '9876543214' },
+];
+const DEMO_INSTRUCTORS = [
+  { instructor_code: 'INS001', name: 'Dr. Anjali Gupta', email: 'anjali@college.edu', school: 'School of Computing',    phone: '9876543215' },
+  { instructor_code: 'INS002', name: 'Dr. Suresh Kumar', email: 'suresh@college.edu', school: 'School of Engineering',  phone: '9876543216' },
+  { instructor_code: 'INS003', name: 'Dr. Meena Pillai', email: 'meena@college.edu',  school: 'School of Sciences',     phone: '9876543217' },
+];
+const DEMO_COURSES = [
+  { course_ID: 'CS301', course_name: 'Database Management Systems', department: 'Computer Science', credits: 4, instructor_name: 'Dr. Anjali Gupta' },
+  { course_ID: 'CS302', course_name: 'Operating Systems',           department: 'Computer Science', credits: 4, instructor_name: 'Dr. Anjali Gupta' },
+  { course_ID: 'EC201', course_name: 'Digital Electronics',         department: 'Electronics',      credits: 3, instructor_name: 'Dr. Suresh Kumar' },
+  { course_ID: 'CS401', course_name: 'Machine Learning',            department: 'Computer Science', credits: 4, instructor_name: 'Dr. Meena Pillai' },
+  { course_ID: 'ME301', course_name: 'Thermodynamics',              department: 'Mechanical',       credits: 3, instructor_name: 'Dr. Suresh Kumar' },
+];
+const DEMO_ENROLLMENTS = [
+  { reg_no: 'CS2021001', student_name: 'Arjun Sharma', course_ID: 'CS301', course_name: 'Database Management Systems', credits: 4 },
+  { reg_no: 'CS2021001', student_name: 'Arjun Sharma', course_ID: 'CS302', course_name: 'Operating Systems',           credits: 4 },
+  { reg_no: 'CS2021002', student_name: 'Priya Nair',   course_ID: 'CS301', course_name: 'Database Management Systems', credits: 4 },
+  { reg_no: 'EC2021003', student_name: 'Kiran Mehta',  course_ID: 'EC201', course_name: 'Digital Electronics',         credits: 3 },
+];
+const DEMO_EXAMS = [
+  { exam_ID: 1, title: 'DBMS Mid-Term Exam',       course_name: 'DBMS',              exam_date: '2024-10-15', duration: 90,  total_marks: 100 },
+  { exam_ID: 2, title: 'OS Unit Test 1',           course_name: 'Operating Systems', exam_date: '2024-10-20', duration: 60,  total_marks: 50  },
+  { exam_ID: 3, title: 'Digital Electronics Quiz', course_name: 'Digital Elec.',     exam_date: '2024-10-18', duration: 45,  total_marks: 30  },
+  { exam_ID: 4, title: 'ML Final Exam',            course_name: 'Machine Learning',  exam_date: '2024-11-10', duration: 120, total_marks: 100 },
+  { exam_ID: 5, title: 'Thermodynamics Mid-Term',  course_name: 'Thermodynamics',    exam_date: '2024-10-25', duration: 90,  total_marks: 100 },
+];
+const DEMO_QUESTIONS = [
+  { question_ID: 1, exam_title: 'DBMS Mid-Term', question_text: 'What is BCNF?',                  question_type: 'Long Answer',  marks: 20 },
+  { question_ID: 2, exam_title: 'DBMS Mid-Term', question_text: 'Which is a DDL command?',         question_type: 'MCQ',          marks: 5  },
+  { question_ID: 3, exam_title: 'OS Unit Test',  question_text: 'What is a semaphore?',            question_type: 'Long Answer',  marks: 15 },
+  { question_ID: 4, exam_title: 'OS Unit Test',  question_text: 'Define deadlock conditions.',     question_type: 'Long Answer',  marks: 15 },
+];
+const DEMO_ATTEMPTS = [
+  { attempt_ID: 1, reg_no: 'CS2021001', student_name: 'Arjun Sharma', exam_title: 'DBMS Mid-Term',  start_time: '2024-10-15 10:00', submit_time: '2024-10-15 11:25', score: 92 },
+  { attempt_ID: 2, reg_no: 'CS2021002', student_name: 'Priya Nair',   exam_title: 'DBMS Mid-Term',  start_time: '2024-10-15 10:00', submit_time: '2024-10-15 11:20', score: 78 },
+  { attempt_ID: 3, reg_no: 'CS2021001', student_name: 'Arjun Sharma', exam_title: 'OS Unit Test 1', start_time: '2024-10-20 09:00', submit_time: '2024-10-20 09:55', score: 45 },
+];
+const DEMO_RESULTS = [
+  { result_ID: 1, attempt_ID: 1, student_name: 'Arjun Sharma', reg_no: 'CS2021001', exam_title: 'DBMS Mid-Term',  marks_obtained: 92, grade: 'A',    status: 'Pass' },
+  { result_ID: 2, attempt_ID: 2, student_name: 'Priya Nair',   reg_no: 'CS2021002', exam_title: 'DBMS Mid-Term',  marks_obtained: 78, grade: 'B',    status: 'Pass' },
+  { result_ID: 3, attempt_ID: 3, student_name: 'Arjun Sharma', reg_no: 'CS2021001', exam_title: 'OS Unit Test 1', marks_obtained: 45, grade: 'Fail', status: 'Fail' },
+];
+
+// ══════════════════════════════════════════════════════════════
+//  PAGE: DASHBOARD
+// ══════════════════════════════════════════════════════════════
+function Dashboard() {
+  const [stats, setStats] = useState({ students: '…', instructors: '…', courses: '…', exams: '…', enrollments: '…', attempts: '…' });
+
+  useEffect(() => {
+    const safe = (p) => p.then(r => r.json()).catch(() => null);
+    Promise.all([
+      safe(fetch(`${API}/students`)),
+      safe(fetch(`${API}/instructors`)),
+      safe(fetch(`${API}/courses`)),
+      safe(fetch(`${API}/exams`)),
+      safe(fetch(`${API}/enrollments`)),
+      safe(fetch(`${API}/attempts`)),
+    ]).then(([s, i, c, e, en, at]) => {
+      setStats({
+        students:    Array.isArray(s)  ? s.length  : '—',
+        instructors: Array.isArray(i)  ? i.length  : '—',
+        courses:     Array.isArray(c)  ? c.length  : '—',
+        exams:       Array.isArray(e)  ? e.length  : '—',
+        enrollments: Array.isArray(en) ? en.length : '—',
+        attempts:    Array.isArray(at) ? at.length : '—',
+      });
+    });
+  }, []);
+
+  const STAT_CARDS = [
+    { label: 'Students',    val: stats.students,    icon: '🎓' },
+    { label: 'Instructors', val: stats.instructors, icon: '👨‍🏫' },
+    { label: 'Courses',     val: stats.courses,     icon: '📖' },
+    { label: 'Exams',       val: stats.exams,       icon: '📝' },
+    { label: 'Enrollments', val: stats.enrollments, icon: '📋' },
+    { label: 'Attempts',    val: stats.attempts,    icon: '✅' },
+  ];
+
+  return React.createElement('div', null,
+    React.createElement('div', { className: 'welcome' },
+      React.createElement('h2', null, 'ExamVault Dashboard'),
+      React.createElement('p', null, 'Online Exam Management System · BCNF Normalized Database')
+    ),
+    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 28 } },
+      STAT_CARDS.map(s => React.createElement('div', { className: 'stat-card', key: s.label },
+        React.createElement('span', { className: 'stat-icon' }, s.icon),
+        React.createElement('div', { className: 'stat-val' }, s.val),
+        React.createElement('div', { className: 'stat-label' }, s.label),
+      ))
+    ),
+    React.createElement('div', { style: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 24 } },
+      React.createElement('div', { className: 'section-title' }, '🏅 Grade Calculation Rules'),
+      React.createElement('div', { className: 'grade-legend' },
+        [
+          { grade: 'A',    range: '≥ 90 marks', cls: 'badge-a' },
+          { grade: 'B',    range: '75 – 89',    cls: 'badge-b' },
+          { grade: 'C',    range: '50 – 74',    cls: 'badge-c' },
+          { grade: 'Fail', range: '< 50 marks', cls: 'badge-fail' },
+        ].map(g =>
+          React.createElement('div', { className: 'grade-item', key: g.grade },
+            React.createElement('span', { className: `badge ${g.cls}` }, g.grade),
+            React.createElement('span', { className: 'grade-score' }, g.range)
+          )
+        )
+      ),
+      React.createElement('hr'),
+      React.createElement('div', { className: 'section-title' }, '⚡ Quick Grade Calculator'),
+      React.createElement(GradeCalculator)
+    )
+  );
+}
+
+function GradeCalculator() {
+  const [marks, setMarks] = useState('');
+  const result = marks !== '' ? calcGrade(marks) : null;
+  return React.createElement('div', { style: { display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' } },
+    React.createElement('input', {
+      className: 'form-input', type: 'number', min: 0, max: 100,
+      placeholder: 'Enter marks (0–100)', style: { width: 220 },
+      value: marks, onChange: e => setMarks(e.target.value)
+    }),
+    result && React.createElement('div', { style: { display: 'flex', gap: 10, alignItems: 'center' } },
+      React.createElement('span', { style: { color: 'var(--muted)', fontSize: 13 } }, 'Grade:'),
+      React.createElement(GradeBadge, { grade: result.grade }),
+      React.createElement('span', { style: { color: 'var(--muted)', fontSize: 13 } }, 'Status:'),
+      React.createElement(StatusBadge, { status: result.status }),
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PAGE: STUDENTS
+// ══════════════════════════════════════════════════════════════
+function StudentsPage({ toast }) {
+  const [data, setData] = useState([]);
+  const [modal, setModal] = useState(null);
+  const [form, setForm]   = useState({});
+  const [errors, setErrors] = useState({});
+
+  const load = () => fetch(`${API}/students`).then(r => r.json()).then(setData).catch(() => setData(DEMO_STUDENTS));
+  useEffect(() => { load(); }, []);
+
+  const RULES_NEW = {
+    reg_no:     [validators.required, validators.regNo],
+    name:       [validators.required],
+    email:      [validators.required, validators.email],
+    phone:      [validators.phone],
+    semester:   [validators.required, validators.semester],
+    department: [validators.required],
+  };
+  const RULES_EDIT = {
+    name:       [validators.required],
+    email:      [validators.required, validators.email],
+    phone:      [validators.phone],
+    semester:   [validators.required, validators.semester],
+    department: [validators.required],
+  };
+
+  const save = async () => {
+    const rules = modal.isNew ? RULES_NEW : RULES_EDIT;
+    const errs = validate(rules, form);
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    const url    = modal.isNew ? `${API}/students` : `${API}/students/${modal.reg_no}`;
+    const method = modal.isNew ? 'POST' : 'PUT';
+    const body   = modal.isNew ? form : { name: form.name, email: form.email, phone: form.phone, dob: form.dob, semester: form.semester, department: form.department };
+    try {
+      const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Save failed');
+      toast('Student saved ✓', 'success'); setModal(null); load();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const del = async row => {
+    if (!confirm(`Delete ${row.name}?`)) return;
+    try {
+      const r = await fetch(`${API}/students/${row.reg_no}`, { method: 'DELETE' });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || 'Delete failed');
+      toast('Student deleted', 'success'); load();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const FIELDS_NEW = [
+    { key: 'reg_no',     label: 'Registration No',  placeholder: 'CS2021001', required: true, hint: '5-20 uppercase alphanumeric' },
+    { key: 'section-1',  label: '— User Details —', type: 'section' },
+    { key: 'name',       label: 'Full Name',         placeholder: 'Student name', required: true },
+    { key: 'email',      label: 'Email',             type: 'email', placeholder: 'student@college.edu', required: true },
+    { key: 'phone',      label: 'Phone',             placeholder: '10-digit number', hint: 'optional' },
+    { key: 'dob',        label: 'Date of Birth',     type: 'date', hint: 'optional' },
+    { key: 'section-2',  label: '— Academic Info —', type: 'section' },
+    { key: 'semester',   label: 'Semester',          type: 'number', placeholder: '1–8', min: 1, max: 8, required: true },
+    { key: 'department', label: 'Department',        placeholder: 'Computer Science', required: true },
+  ];
+  const FIELDS_EDIT = FIELDS_NEW.filter(f => f.key !== 'reg_no');
+
+  return React.createElement('div', null,
+    React.createElement('div', { className: 'page-header' },
+      React.createElement('div', { className: 'page-title' }, '🎓 Students'),
+      React.createElement('div', { className: 'page-sub' }, 'Manage student registrations')
+    ),
+    React.createElement(DataTable, {
+      columns: [
+        { key: 'reg_no',     label: 'Reg No',     code: true },
+        { key: 'name',       label: 'Name' },
+        { key: 'email',      label: 'Email' },
+        { key: 'department', label: 'Department' },
+        { key: 'semester',   label: 'Sem' },
+        { key: 'phone',      label: 'Phone' },
+      ],
+      data, searchPlaceholder: '🔍  Search by name, reg no, dept...',
+      onAdd: () => { setForm({}); setErrors({}); setModal({ isNew: true }); },
+      onEdit: row => { setForm({...row}); setErrors({}); setModal({ ...row, isNew: false }); },
+      onDelete: del,
+    }),
+    modal && React.createElement(Modal, {
+      title: modal.isNew ? '+ Add Student' : `Edit Student — ${modal.reg_no}`,
+      fields: modal.isNew ? FIELDS_NEW : FIELDS_EDIT,
+      values: form, errors,
+      onChange: (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(p => ({ ...p, [k]: null })); },
+      onSave: save, onClose: () => setModal(null),
+    })
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PAGE: INSTRUCTORS  (NEW)
+// ══════════════════════════════════════════════════════════════
+function InstructorsPage({ toast }) {
+  const [data, setData]   = useState([]);
+  const [modal, setModal] = useState(null);
+  const [form, setForm]   = useState({});
+  const [errors, setErrors] = useState({});
+
+  const load = () => fetch(`${API}/instructors`).then(r => r.json()).then(setData).catch(() => setData(DEMO_INSTRUCTORS));
+  useEffect(() => { load(); }, []);
+
+  const RULES_NEW = {
+    instructor_code: [validators.required, validators.insCode],
+    school:          [validators.required],
+    name:            [validators.required],
+    email:           [validators.required, validators.email],
+    phone:           [validators.phone],
+  };
+  const RULES_EDIT = {
+    school: [validators.required],
+    name:   [validators.required],
+    email:  [validators.required, validators.email],
+    phone:  [validators.phone],
+  };
+
+  const save = async () => {
+    const rules = modal.isNew ? RULES_NEW : RULES_EDIT;
+    const errs  = validate(rules, form);
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    const url    = modal.isNew ? `${API}/instructors` : `${API}/instructors/${modal.instructor_code}`;
+    const method = modal.isNew ? 'POST' : 'PUT';
+    try {
+      const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Save failed');
+      toast('Instructor saved ✓', 'success'); setModal(null); load();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const del = async row => {
+    if (!confirm(`Delete instructor ${row.instructor_code}? This will affect assigned courses.`)) return;
+    try { await fetch(`${API}/instructors/${row.instructor_code}`, { method: 'DELETE' }); toast('Instructor deleted', 'success'); load(); }
+    catch { toast('Error deleting', 'error'); }
+  };
+
+  const FIELDS_NEW = [
+    { key: 'instructor_code', label: 'Instructor Code', placeholder: 'INS001', required: true, hint: '3-20 uppercase e.g. INS001' },
+    { key: 'school',          label: 'School / Faculty', placeholder: 'School of Computing', required: true },
+    { key: 'section-1',       label: '— Personal Details —', type: 'section' },
+    { key: 'name',            label: 'Full Name',   placeholder: 'Dr. Name', required: true },
+    { key: 'email',           label: 'Email',       type: 'email', placeholder: 'instructor@college.edu', required: true },
+    { key: 'phone',           label: 'Phone',       placeholder: '10-digit number', hint: 'optional' },
+    { key: 'dob',             label: 'Date of Birth', type: 'date', hint: 'optional' },
+  ];
+  const FIELDS_EDIT = FIELDS_NEW.filter(f => f.key !== 'instructor_code');
+
+  return React.createElement('div', null,
+    React.createElement('div', { className: 'page-header' },
+      React.createElement('div', { className: 'page-title' }, '👨‍🏫 Instructors'),
+      React.createElement('div', { className: 'page-sub' }, 'Manage faculty and teaching staff')
+    ),
+    React.createElement(DataTable, {
+      columns: [
+        { key: 'instructor_code', label: 'Code',   code: true },
+        { key: 'name',            label: 'Name' },
+        { key: 'email',           label: 'Email' },
+        { key: 'school',          label: 'School' },
+        { key: 'phone',           label: 'Phone' },
+      ],
+      data, searchPlaceholder: '🔍  Search by name, code, school...',
+      onAdd:   () => { setForm({}); setErrors({}); setModal({ isNew: true }); },
+      onEdit:  row => { setForm({...row}); setErrors({}); setModal({ ...row, isNew: false }); },
+      onDelete: del,
+    }),
+    modal && React.createElement(Modal, {
+      title: modal.isNew ? '+ Add Instructor' : `Edit Instructor — ${modal.instructor_code}`,
+      fields: modal.isNew ? FIELDS_NEW : FIELDS_EDIT,
+      values: form, errors,
+      onChange: (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(p => ({ ...p, [k]: null })); },
+      onSave: save, onClose: () => setModal(null),
+    })
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PAGE: COURSES
+// ══════════════════════════════════════════════════════════════
+function CoursesPage({ toast }) {
+  const [data, setData]   = useState([]);
+  const [modal, setModal] = useState(null);
+  const [form, setForm]   = useState({});
+  const [errors, setErrors] = useState({});
+
+  const load = () => fetch(`${API}/courses`).then(r => r.json()).then(setData).catch(() => setData(DEMO_COURSES));
+  useEffect(() => { load(); }, []);
+
+  const RULES_NEW = {
+    course_ID:   [validators.required, validators.courseID],
+    course_name: [validators.required],
+    credits:     [validators.required, validators.credits],
+    department:  [validators.required],
+  };
+  const RULES_EDIT = {
+    course_name: [validators.required],
+    credits:     [validators.required, validators.credits],
+    department:  [validators.required],
+  };
+
+  const save = async () => {
+    const errs = validate(modal.isNew ? RULES_NEW : RULES_EDIT, form);
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    const url    = modal.isNew ? `${API}/courses` : `${API}/courses/${modal.course_ID}`;
+    const method = modal.isNew ? 'POST' : 'PUT';
+    try {
+      const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Save failed');
+      toast('Course saved ✓', 'success'); setModal(null); load();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const del = async row => {
+    if (!confirm(`Delete course ${row.course_ID}?`)) return;
+    try { await fetch(`${API}/courses/${row.course_ID}`, { method: 'DELETE' }); toast('Deleted', 'success'); load(); }
+    catch { toast('Error', 'error'); }
+  };
+
+  const FIELDS_NEW = [
+    { key: 'course_ID',       label: 'Course ID',       placeholder: 'CS301', required: true, hint: '3-20 uppercase e.g. CS301' },
+    { key: 'course_name',     label: 'Course Name',     placeholder: 'Database Management Systems', required: true },
+    { key: 'credits',         label: 'Credits',         type: 'number', placeholder: '1–10', min: 1, max: 10, required: true },
+    { key: 'department',      label: 'Department',      placeholder: 'Computer Science', required: true },
+    { key: 'instructor_code', label: 'Instructor Code', placeholder: 'INS001', hint: 'optional — must exist in Instructors' },
+  ];
+  const FIELDS_EDIT = FIELDS_NEW.filter(f => f.key !== 'course_ID');
+
+  return React.createElement('div', null,
+    React.createElement('div', { className: 'page-header' },
+      React.createElement('div', { className: 'page-title' }, '📖 Courses'),
+      React.createElement('div', { className: 'page-sub' }, 'Manage courses and instructor assignments')
+    ),
+    React.createElement(DataTable, {
+      columns: [
+        { key: 'course_ID',       label: 'ID',         code: true },
+        { key: 'course_name',     label: 'Course Name' },
+        { key: 'department',      label: 'Department' },
+        { key: 'credits',         label: 'Credits' },
+        { key: 'instructor_name', label: 'Instructor' },
+      ],
+      data, searchPlaceholder: '🔍  Search by course ID, name...',
+      onAdd:   () => { setForm({}); setErrors({}); setModal({ isNew: true }); },
+      onEdit:  row => { setForm({...row}); setErrors({}); setModal({ ...row, isNew: false }); },
+      onDelete: del,
+    }),
+    modal && React.createElement(Modal, {
+      title: modal.isNew ? '+ Add Course' : `Edit Course — ${modal.course_ID}`,
+      fields: modal.isNew ? FIELDS_NEW : FIELDS_EDIT,
+      values: form, errors,
+      onChange: (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(p => ({ ...p, [k]: null })); },
+      onSave: save, onClose: () => setModal(null),
+    })
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PAGE: ENROLLMENTS  (NEW)
+// ══════════════════════════════════════════════════════════════
+function EnrollmentsPage({ toast }) {
+  const [data, setData]   = useState([]);
+  const [modal, setModal] = useState(null);
+  const [form, setForm]   = useState({});
+  const [errors, setErrors] = useState({});
+
+  const load = () => fetch(`${API}/enrollments`).then(r => r.json()).then(setData).catch(() => setData(DEMO_ENROLLMENTS));
+  useEffect(() => { load(); }, []);
+
+  const RULES = {
+    reg_no:    [validators.required],
+    course_ID: [validators.required],
+  };
+
+  const save = async () => {
+    const errs = validate(RULES, form);
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    try {
+      const r = await fetch(`${API}/enrollments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reg_no: form.reg_no, course_ID: form.course_ID })
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Enrollment failed');
+      toast(`Enrolled ${form.reg_no} in ${form.course_ID} ✓`, 'success'); setModal(null); load();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const unenroll = async row => {
+    if (!confirm(`Remove ${row.student_name} from ${row.course_name}?`)) return;
+    try {
+      const r = await fetch(`${API}/enrollments`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reg_no: row.reg_no, course_ID: row.course_ID })
+      });
+      if (!r.ok) throw new Error();
+      toast('Enrollment removed', 'success'); load();
+    } catch { toast('Error removing enrollment', 'error'); }
+  };
+
+  return React.createElement('div', null,
+    React.createElement('div', { className: 'page-header' },
+      React.createElement('div', { className: 'page-title' }, '📋 Enrollments'),
+      React.createElement('div', { className: 'page-sub' }, 'Manage which students are enrolled in which courses')
+    ),
+    React.createElement('div', { className: 'info-box' },
+      '💡 Both the student (reg_no) and course (course_ID) must already exist before enrolling. ' +
+      'Duplicate enrollments are automatically rejected.'
+    ),
+    React.createElement(DataTable, {
+      columns: [
+        { key: 'reg_no',       label: 'Reg No',      code: true },
+        { key: 'student_name', label: 'Student' },
+        { key: 'semester',     label: 'Sem' },
+        { key: 'course_ID',    label: 'Course ID',   code: true },
+        { key: 'course_name',  label: 'Course Name' },
+        { key: 'credits',      label: 'Credits' },
+      ],
+      data, searchPlaceholder: '🔍  Search by student, course...',
+      addLabel: '+ Enroll Student',
+      onAdd:    () => { setForm({}); setErrors({}); setModal(true); },
+      onDelete: unenroll,
+    }),
+    modal && React.createElement(Modal, {
+      title: '+ Enroll Student in Course',
+      fields: [
+        { key: 'reg_no',    label: 'Student Reg No', placeholder: 'CS2021001', required: true, hint: 'must already exist' },
+        { key: 'course_ID', label: 'Course ID',      placeholder: 'CS301',     required: true, hint: 'must already exist' },
+      ],
+      values: form, errors,
+      onChange: (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(p => ({ ...p, [k]: null })); },
+      onSave: save, onClose: () => setModal(null),
+    })
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PAGE: EXAMS
+// ══════════════════════════════════════════════════════════════
+function ExamsPage({ toast }) {
+  const [data, setData]   = useState([]);
+  const [modal, setModal] = useState(null);
+  const [form, setForm]   = useState({});
+  const [errors, setErrors] = useState({});
+
+  const load = () => fetch(`${API}/exams`).then(r => r.json()).then(setData).catch(() => setData(DEMO_EXAMS));
+  useEffect(() => { load(); }, []);
+
+  const RULES = {
+    title:       [validators.required],
+    exam_date:   [validators.required],
+    duration:    [validators.required, validators.duration],
+    total_marks: [validators.required, validators.totalMarks],
+  };
+
+  const save = async () => {
+    const errs = validate(RULES, form);
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    const url    = modal.isNew ? `${API}/exams` : `${API}/exams/${modal.exam_ID}`;
+    const method = modal.isNew ? 'POST' : 'PUT';
+    try {
+      const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Save failed');
+      toast('Exam saved ✓', 'success'); setModal(null); load();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const del = async row => {
+    if (!confirm(`Delete exam: ${row.title}?`)) return;
+    try { await fetch(`${API}/exams/${row.exam_ID}`, { method: 'DELETE' }); toast('Deleted', 'success'); load(); }
+    catch { toast('Error', 'error'); }
+  };
+
+  const FIELDS = [
+    { key: 'title',       label: 'Title',           placeholder: 'DBMS Mid-Term Exam', required: true },
+    { key: 'course_ID',   label: 'Course ID',        placeholder: 'CS301', hint: 'optional' },
+    { key: 'exam_date',   label: 'Exam Date',        type: 'date', required: true },
+    { key: 'duration',    label: 'Duration (min)',   type: 'number', placeholder: '10–300', min: 10, max: 300, required: true },
+    { key: 'total_marks', label: 'Total Marks',      type: 'number', placeholder: '1–500', min: 1, max: 500, required: true },
+  ];
+
+  return React.createElement('div', null,
+    React.createElement('div', { className: 'page-header' },
+      React.createElement('div', { className: 'page-title' }, '📝 Exams'),
+      React.createElement('div', { className: 'page-sub' }, 'Manage exams, schedules, and durations')
+    ),
+    React.createElement(DataTable, {
+      columns: [
+        { key: 'exam_ID',     label: 'ID',          code: true },
+        { key: 'title',       label: 'Title' },
+        { key: 'course_name', label: 'Course' },
+        { key: 'exam_date',   label: 'Date',        render: v => v ? v.slice(0,10) : '—' },
+        { key: 'duration',    label: 'Mins' },
+        { key: 'total_marks', label: 'Total Marks' },
+      ],
+      data, searchPlaceholder: '🔍  Search by title, course...',
+      onAdd:   () => { setForm({}); setErrors({}); setModal({ isNew: true }); },
+      onEdit:  row => { setForm({...row, exam_date: row.exam_date?.slice(0,10) }); setErrors({}); setModal({ ...row, isNew: false }); },
+      onDelete: del,
+    }),
+    modal && React.createElement(Modal, {
+      title: modal.isNew ? '+ Add Exam' : `Edit Exam #${modal.exam_ID}`,
+      fields: FIELDS,
+      values: form, errors,
+      onChange: (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(p => ({ ...p, [k]: null })); },
+      onSave: save, onClose: () => setModal(null),
+    })
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PAGE: QUESTIONS
+// ══════════════════════════════════════════════════════════════
+function QuestionsPage({ toast }) {
+  const [data, setData]   = useState([]);
+  const [modal, setModal] = useState(null);
+  const [form, setForm]   = useState({});
+  const [errors, setErrors] = useState({});
+
+  const load = () => fetch(`${API}/questions`).then(r => r.json()).then(setData).catch(() => setData(DEMO_QUESTIONS));
+  useEffect(() => { load(); }, []);
+
+  const RULES = {
+    exam_ID:       [validators.required, validators.posInt],
+    question_text: [validators.required],
+    question_type: [validators.required],
+    marks:         [validators.required, validators.qMarks],
+  };
+
+  const save = async () => {
+    const errs = validate(RULES, form);
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    const url    = modal.isNew ? `${API}/questions` : `${API}/questions/${modal.question_ID}`;
+    const method = modal.isNew ? 'POST' : 'PUT';
+    try {
+      const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Save failed');
+      toast('Question saved ✓', 'success'); setModal(null); load();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const del = async row => {
+    if (!confirm('Delete this question?')) return;
+    try { await fetch(`${API}/questions/${row.question_ID}`, { method: 'DELETE' }); toast('Deleted', 'success'); load(); }
+    catch { toast('Error', 'error'); }
+  };
+
+  const FIELDS = [
+    { key: 'exam_ID',       label: 'Exam ID',   type: 'number', placeholder: '1', required: true },
+    { key: 'question_text', label: 'Question',  type: 'textarea', placeholder: 'Enter question text...', required: true },
+    { key: 'question_type', label: 'Type', type: 'select', required: true, options: [
+        { value: 'MCQ',          label: 'MCQ' },
+        { value: 'Short Answer', label: 'Short Answer' },
+        { value: 'Long Answer',  label: 'Long Answer' },
+        { value: 'True/False',   label: 'True/False' },
+      ]
+    },
+    { key: 'marks', label: 'Marks', type: 'number', placeholder: '1–100', min: 1, max: 100, required: true },
+  ];
+
+  return React.createElement('div', null,
+    React.createElement('div', { className: 'page-header' },
+      React.createElement('div', { className: 'page-title' }, '❓ Questions'),
+      React.createElement('div', { className: 'page-sub' }, 'Add and manage exam questions')
+    ),
+    React.createElement(DataTable, {
+      columns: [
+        { key: 'question_ID',   label: 'Q#',    code: true },
+        { key: 'exam_title',    label: 'Exam' },
+        { key: 'question_text', label: 'Question', render: v => v?.length > 60 ? v.slice(0,60)+'…' : v },
+        { key: 'question_type', label: 'Type' },
+        { key: 'marks',         label: 'Marks' },
+      ],
+      data, searchPlaceholder: '🔍  Search questions...',
+      onAdd:   () => { setForm({}); setErrors({}); setModal({ isNew: true }); },
+      onEdit:  row => { setForm({...row}); setErrors({}); setModal({ ...row, isNew: false }); },
+      onDelete: del,
+    }),
+    modal && React.createElement(Modal, {
+      title: modal.isNew ? '+ Add Question' : `Edit Question #${modal.question_ID}`,
+      fields: FIELDS,
+      values: form, errors,
+      onChange: (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(p => ({ ...p, [k]: null })); },
+      onSave: save, onClose: () => setModal(null),
+    })
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PAGE: ATTEMPTS
+// ══════════════════════════════════════════════════════════════
+function AttemptsPage({ toast }) {
+  const [data, setData]   = useState([]);
+  const [modal, setModal] = useState(null);
+  const [form, setForm]   = useState({});
+  const [errors, setErrors] = useState({});
+
+  const load = () => fetch(`${API}/attempts`).then(r => r.json()).then(setData).catch(() => setData(DEMO_ATTEMPTS));
+  useEffect(() => { load(); }, []);
+
+  const RULES_NEW = {
+    reg_no:  [validators.required],
+    exam_ID: [validators.required, validators.posInt],
+    score:   [validators.marks],
+  };
+  const RULES_EDIT = { score: [validators.marks] };
+
+  const save = async () => {
+    const errs = validate(modal.isNew ? RULES_NEW : RULES_EDIT, form);
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    const url    = modal.isNew ? `${API}/attempts` : `${API}/attempts/${modal.attempt_ID}`;
+    const method = modal.isNew ? 'POST' : 'PUT';
+    try {
+      const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Save failed');
+      toast('Attempt saved ✓', 'success'); setModal(null); load();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const del = async row => {
+    if (!confirm('Delete this attempt?')) return;
+    try { await fetch(`${API}/attempts/${row.attempt_ID}`, { method: 'DELETE' }); toast('Deleted', 'success'); load(); }
+    catch { toast('Error', 'error'); }
+  };
+
+  return React.createElement('div', null,
+    React.createElement('div', { className: 'page-header' },
+      React.createElement('div', { className: 'page-title' }, '✅ Attempts'),
+      React.createElement('div', { className: 'page-sub' }, 'Track student exam attempts and scores')
+    ),
+    React.createElement(DataTable, {
+      columns: [
+        { key: 'attempt_ID',   label: 'Attempt#', code: true },
+        { key: 'reg_no',       label: 'Reg No',   code: true },
+        { key: 'student_name', label: 'Student' },
+        { key: 'exam_title',   label: 'Exam' },
+        { key: 'start_time',   label: 'Start',  render: v => v ? v.slice(0,16).replace('T',' ') : '—' },
+        { key: 'submit_time',  label: 'Submit', render: v => v ? v.slice(0,16).replace('T',' ') : '—' },
+        { key: 'score',        label: 'Score', render: v => React.createElement('strong', { style: { color: 'var(--accent2)' } }, v) },
+      ],
+      data, searchPlaceholder: '🔍  Search by reg_no, exam...',
+      onAdd:   () => { setForm({}); setErrors({}); setModal({ isNew: true }); },
+      onEdit:  row => { setForm({...row}); setErrors({}); setModal({ ...row, isNew: false }); },
+      onDelete: del,
+    }),
+    modal && React.createElement(Modal, {
+      title: modal.isNew ? '+ Add Attempt' : `Edit Attempt #${modal.attempt_ID}`,
+      fields: [
+        modal.isNew && { key: 'reg_no',      label: 'Reg No',    placeholder: 'CS2021001', required: true },
+        modal.isNew && { key: 'exam_ID',      label: 'Exam ID',   type: 'number', placeholder: '1', required: true },
+        { key: 'start_time',  label: 'Start Time',  type: 'datetime-local' },
+        { key: 'submit_time', label: 'Submit Time', type: 'datetime-local' },
+        { key: 'score',       label: 'Score (0–100)', type: 'number', placeholder: '85', min: 0, max: 100, hint: 'optional at creation' },
+      ].filter(Boolean),
+      values: form, errors,
+      onChange: (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(p => ({ ...p, [k]: null })); },
+      onSave: save, onClose: () => setModal(null),
+    })
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PAGE: RESULTS
+// ══════════════════════════════════════════════════════════════
+function ResultsPage({ toast }) {
+  const [data, setData]     = useState([]);
+  const [modal, setModal]   = useState(null);
+  const [form, setForm]     = useState({});
+  const [errors, setErrors] = useState({});
+  const [preview, setPreview] = useState(null);
+
+  const load = () => fetch(`${API}/attempts/results/all`).then(r => r.json()).then(setData).catch(() => setData(DEMO_RESULTS));
+  useEffect(() => { load(); }, []);
+
+  const RULES_NEW  = { attempt_ID: [validators.required, validators.posInt], marks_obtained: [validators.required, validators.marks] };
+  const RULES_EDIT = { marks_obtained: [validators.required, validators.marks] };
+
+  const save = async () => {
+    const errs = validate(modal.isNew ? RULES_NEW : RULES_EDIT, form);
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    const url    = modal.isNew ? `${API}/attempts/results` : `${API}/attempts/results/${modal.result_ID}`;
+    const method = modal.isNew ? 'POST' : 'PUT';
+    try {
+      const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Save failed');
+      toast(`Saved — Grade: ${j.grade || preview?.grade}`, 'success'); setModal(null); load();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const del = async row => {
+    if (!confirm('Delete this result?')) return;
+    try { await fetch(`${API}/attempts/results/${row.result_ID}`, { method: 'DELETE' }); toast('Deleted', 'success'); load(); }
+    catch { toast('Error', 'error'); }
+  };
+
+  return React.createElement('div', null,
+    React.createElement('div', { className: 'page-header' },
+      React.createElement('div', { className: 'page-title' }, '🏅 Results'),
+      React.createElement('div', { className: 'page-sub' }, 'Grades auto-calculated from marks obtained')
+    ),
+    React.createElement(DataTable, {
+      columns: [
+        { key: 'result_ID',      label: 'Result#', code: true },
+        { key: 'student_name',   label: 'Student' },
+        { key: 'reg_no',         label: 'Reg No', code: true },
+        { key: 'exam_title',     label: 'Exam' },
+        { key: 'marks_obtained', label: 'Marks', render: v => React.createElement('strong', { style: { color: 'var(--white)' } }, v) },
+        { key: 'grade',  label: 'Grade',  render: v => React.createElement(GradeBadge, { grade: v }) },
+        { key: 'status', label: 'Status', render: v => React.createElement(StatusBadge, { status: v }) },
+      ],
+      data, searchPlaceholder: '🔍  Search by student, grade, status...',
+      onAdd:   () => { setForm({}); setErrors({}); setPreview(null); setModal({ isNew: true }); },
+      onEdit:  row => { setForm({...row}); setErrors({}); setPreview(calcGrade(row.marks_obtained)); setModal({ ...row, isNew: false }); },
+      onDelete: del,
+    }),
+    modal && React.createElement(Modal, {
+      title: modal.isNew ? '+ Add Result' : `Edit Result #${modal.result_ID}`,
+      fields: [
+        modal.isNew && { key: 'attempt_ID',     label: 'Attempt ID',     type: 'number', placeholder: '1', required: true },
+        { key: 'marks_obtained', label: 'Marks Obtained (0–100)', type: 'number', placeholder: '0–100', min: 0, max: 100, required: true },
+      ].filter(Boolean),
+      values: form, errors,
+      onChange: (k, v) => {
+        setForm(p => ({ ...p, [k]: v }));
+        setErrors(p => ({ ...p, [k]: null }));
+        if (k === 'marks_obtained' && v !== '') setPreview(calcGrade(v));
+      },
+      onSave: save, onClose: () => setModal(null),
+      extra: preview && React.createElement('div', {
+        style: { display: 'flex', gap: 12, alignItems: 'center', padding: '12px 0', borderTop: '1px solid var(--border)', marginTop: 8 }
+      },
+        React.createElement('span', { style: { fontSize: 12, color: 'var(--muted)' } }, 'Auto Grade:'),
+        React.createElement(GradeBadge, { grade: preview.grade }),
+        React.createElement(StatusBadge, { status: preview.status }),
+      )
+    })
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ROOT APP
+// ══════════════════════════════════════════════════════════════
+function App() {
+  const [page, setPage]   = useState('dashboard');
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const NAV = [
+    { id: 'dashboard',   label: 'Dashboard',    icon: '🏠', section: 'OVERVIEW' },
+    { id: 'students',    label: 'Students',     icon: '🎓', section: 'PEOPLE' },
+    { id: 'instructors', label: 'Instructors',  icon: '👨‍🏫' },
+    { id: 'courses',     label: 'Courses',      icon: '📖', section: 'ACADEMICS' },
+    { id: 'enrollments', label: 'Enrollments',  icon: '📋' },
+    { id: 'exams',       label: 'Exams',        icon: '📝' },
+    { id: 'questions',   label: 'Questions',    icon: '❓' },
+    { id: 'attempts',    label: 'Attempts',     icon: '✅', section: 'ASSESSMENTS' },
+    { id: 'results',     label: 'Results',      icon: '🏅' },
+  ];
+
+  const renderPage = () => {
+    const p = { toast: showToast };
+    switch (page) {
+      case 'dashboard':   return React.createElement(Dashboard);
+      case 'students':    return React.createElement(StudentsPage,    p);
+      case 'instructors': return React.createElement(InstructorsPage, p);
+      case 'courses':     return React.createElement(CoursesPage,     p);
+      case 'enrollments': return React.createElement(EnrollmentsPage, p);
+      case 'exams':       return React.createElement(ExamsPage,       p);
+      case 'questions':   return React.createElement(QuestionsPage,   p);
+      case 'attempts':    return React.createElement(AttemptsPage,    p);
+      case 'results':     return React.createElement(ResultsPage,     p);
+      default:            return null;
+    }
+  };
+
+  let lastSection = null;
+
+  return React.createElement('div', { className: 'layout' },
+    React.createElement('aside', { className: 'sidebar' },
+      React.createElement('div', { className: 'logo' },
+        React.createElement('div', { className: 'logo-title' }, 'ExamVault'),
+        React.createElement('div', { className: 'logo-sub' }, 'exam management system')
+      ),
+      React.createElement('nav', { className: 'nav' },
+        ...NAV.flatMap(item => {
+          const els = [];
+          if (item.section && item.section !== lastSection) {
+            lastSection = item.section;
+            els.push(React.createElement('div', { className: 'nav-section', key: `sec-${item.section}` }, item.section));
+          }
+          els.push(React.createElement('div', {
+            key: item.id,
+            className: `nav-item ${page === item.id ? 'active' : ''}`,
+            onClick: () => setPage(item.id)
+          },
+            React.createElement('span', { className: 'nav-icon' }, item.icon),
+            item.label
+          ));
+          return els;
+        })
+      )
+    ),
+    React.createElement('main', { className: 'main' }, renderPage()),
+    toast && React.createElement(Toast, { ...toast, onClose: () => setToast(null) })
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
