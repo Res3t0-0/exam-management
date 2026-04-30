@@ -103,28 +103,6 @@ Grade is automatically calculated when a result is inserted via `POST /api/attem
 
 ---
 
-## 🎤 Viva Demo Script
-
-### Step 1 — Show Database Creation
-> "We created the database `exam_management` using MySQL. Here is the CREATE DATABASE and USE command."
-
-### Step 2 — Show Table Creation
-> "We designed 9 tables in BCNF. Each table has primary keys and foreign key constraints. For example, RESULT has a foreign key to ATTEMPT, and ATTEMPT has foreign keys to STUDENT and EXAM."
-
-### Step 3 — Insert Sample Data
-> "We inserted 5 students, 5 courses, 5 exams, 10 questions, 5 attempts, and 5 results. The data covers Computer Science, Electronics, and Mechanical departments."
-
-### Step 4 — Execute Queries
-> "We demonstrate JOIN queries — for example, fetching all results with student names and exam titles using a 5-table JOIN. We also show grade distribution using GROUP BY."
-
-### Step 5 — Show Frontend Output
-> "Our React frontend connects to the Express API. It shows all tables with search functionality. The navigation buttons (First, Previous, Next, Last) let you navigate record by record."
-
-### Step 6 — Grade Calculation Demo
-> "When we insert a result with marks_obtained = 85, the system automatically calculates Grade = B, Status = Pass. If marks < 50, Grade = Fail."
-
----
-
 ## 🔗 ER Design Summary
 
 ### Entities:
