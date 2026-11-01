@@ -73,7 +73,7 @@ SELECT grade, COUNT(*) AS count,
        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM RESULT), 1) AS percentage
 FROM RESULT
 GROUP BY grade
-ORDER BY FIELD(grade, 'A', 'B', 'C', 'Fail');
+ORDER BY FIELD(grade, 'S', 'A', 'B', 'C', 'D', 'E', 'Fail');
 
 -- ── 10. Student report card ───────────────────────────────────
 SELECT u.name, s.reg_no, e.title AS exam,

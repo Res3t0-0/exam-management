@@ -2,7 +2,9 @@
 -- ONLINE EXAM MANAGEMENT SYSTEM - DATABASE SCHEMA (BCNF)
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS exam_management;
+-- Re-running this file starts from a clean database (prevents duplicate sample rows)
+DROP DATABASE IF EXISTS exam_management;
+CREATE DATABASE exam_management;
 USE exam_management;
 
 -- TABLE 1: USER
@@ -88,7 +90,9 @@ CREATE TABLE RESULT (
     result_ID      INT AUTO_INCREMENT PRIMARY KEY,
     attempt_ID     INT NOT NULL UNIQUE,
     marks_obtained DECIMAL(6,2) NOT NULL,
-    grade          ENUM('A','B','C','Fail') NOT NULL,
+    class_average  DECIMAL(6,2) NOT NULL COMMENT 'class mean for this exam, used for relative grading',
+    std_dev        DECIMAL(6,2) NOT NULL COMMENT 'class standard deviation, must be > 0',
+    grade          ENUM('S','A','B','C','D','E','Fail') NOT NULL,
     status         ENUM('Pass','Fail') NOT NULL,
     FOREIGN KEY (attempt_ID) REFERENCES ATTEMPT(attempt_ID) ON DELETE CASCADE
 );
