@@ -6,6 +6,7 @@ const pool = mysql.createPool({
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASS || '<YOUR_PASSWORD>',
   database: process.env.DB_NAME || 'exam_management',
+  dateStrings: true, // return DATE/DATETIME as plain strings (avoids timezone shift + ISO 'Z' rejected on PUT)
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0

@@ -1094,7 +1094,7 @@ function AttemptsPage({ toast }) {
       ],
       data, searchPlaceholder: '🔍  Search by reg_no, exam...',
       onAdd:   () => { setForm({}); setErrors({}); setModal({ isNew: true }); },
-      onEdit:  row => { setForm({...row}); setErrors({}); setModal({ ...row, isNew: false }); },
+      onEdit:  row => { setForm({...row, start_time: row.start_time?.replace(' ','T').slice(0,16), submit_time: row.submit_time?.replace(' ','T').slice(0,16)}); setErrors({}); setModal({ ...row, isNew: false }); },
       onDelete: del,
     }),
     modal && React.createElement(Modal, {
