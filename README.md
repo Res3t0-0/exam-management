@@ -81,14 +81,22 @@ npm start
 
 ## 🏅 Grade Calculation Logic
 
-| Marks Obtained | Grade | Status |
-|---------------|-------|--------|
-| ≥ 90          | A     | Pass   |
-| 75 – 89       | B     | Pass   |
-| 50 – 74       | C     | Pass   |
-| < 50          | Fail  | Fail   |
+Grading is **relative**: it uses the student's marks, the class average (μ) and the class standard deviation (σ).
+
+| Condition                          | Grade | Status |
+|------------------------------------|-------|--------|
+| marks < 50 (checked first)         | Fail  | Fail   |
+| marks ≥ μ + 1.5σ                   | S     | Pass   |
+| μ + 0.5σ ≤ marks < μ + 1.5σ        | A     | Pass   |
+| μ − 0.5σ ≤ marks < μ + 0.5σ        | B     | Pass   |
+| μ − 1.5σ ≤ marks < μ − 0.5σ        | C     | Pass   |
+| μ − 2σ ≤ marks < μ − 1.5σ          | D     | Pass   |
+| marks < μ − 2σ                     | E     | Pass   |
+
+The lower bound of each band is inclusive. σ must be greater than 0.
 
 Grade is automatically calculated when a result is inserted via `POST /api/attempts/results`.
+Send `attempt_ID`, `marks_obtained`, `class_average` and `std_dev`. `PUT /api/attempts/results/:id` recalculates the grade; any field you leave out keeps its stored value.
 
 ---
 

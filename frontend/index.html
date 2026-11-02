@@ -132,6 +132,9 @@
     display: inline-block; padding: 2px 9px; border-radius: 99px;
     font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace;
   }
+  .badge-s    { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+  .badge-d    { background: rgba(249,115,22,0.15); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+  .badge-e    { background: rgba(244,114,182,0.15); color: #f472b6; border: 1px solid rgba(244,114,182,0.3); }
   .badge-a    { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
   .badge-b    { background: rgba(59,130,246,0.15); color: var(--accent); border: 1px solid rgba(59,130,246,0.3); }
   .badge-c    { background: rgba(245,158,11,0.15); color: var(--gold); border: 1px solid rgba(245,158,11,0.3); }
@@ -219,13 +222,25 @@
 const { useState, useEffect, useCallback } = React;
 const API = 'http://localhost:5000/api';
 
-// ── Grade Calculator ──────────────────────────────────────────
-function calcGrade(m) {
-  const n = parseFloat(m);
-  if (n >= 90) return { grade: 'A', status: 'Pass' };
-  if (n >= 75) return { grade: 'B', status: 'Pass' };
-  if (n >= 50) return { grade: 'C', status: 'Pass' };
-  return { grade: 'Fail', status: 'Fail' };
+// ── Grade Calculator (relative grading) ───────────────────────
+// Must stay in sync with calculateGrade() in backend/routes/attempts.js
+const PASS_MARK = 50;
+
+// Lower bound (inclusive) of each grade band for a given class average and SD
+function gradeCutoffs(avg, sd) {
+  const cut = k => Math.round((avg + k * sd) * 1e6) / 1e6;
+  return { S: cut(1.5), A: cut(0.5), B: cut(-0.5), C: cut(-1.5), D: cut(-2) };
+}
+
+// Returns { grade, status }, or null while marks / average / SD are missing or invalid
+function calcGrade(m, avg, sd) {
+  const marks = parseFloat(m), mu = parseFloat(avg), sigma = parseFloat(sd);
+  if ([marks, mu, sigma].some(isNaN) || sigma <= 0) return null;
+  if (marks < PASS_MARK) return { grade: 'Fail', status: 'Fail' };
+  const c = gradeCutoffs(mu, sigma);
+  const grade = marks >= c.S ? 'S' : marks >= c.A ? 'A' : marks >= c.B ? 'B'
+              : marks >= c.C ? 'C' : marks >= c.D ? 'D' : 'E';
+  return { grade, status: 'Pass' };
 }
 
 // ── Validation helpers ────────────────────────────────────────
@@ -236,6 +251,7 @@ const validators = {
   semester:    v => v && (parseInt(v) < 1 || parseInt(v) > 8) ? 'Semester must be 1–8' : null,
   credits:     v => v && (parseInt(v) < 1 || parseInt(v) > 10) ? 'Credits must be 1–10' : null,
   marks:       v => v !== '' && v !== undefined && (parseFloat(v) < 0 || parseFloat(v) > 100) ? 'Marks must be 0–100' : null,
+  sd:          v => v !== '' && v !== undefined && !(parseFloat(v) > 0) ? 'Must be greater than 0' : null,
   duration:    v => v && (parseInt(v) < 10 || parseInt(v) > 300) ? 'Duration must be 10–300 minutes' : null,
   totalMarks:  v => v && (parseInt(v) < 1 || parseInt(v) > 500) ? 'Total marks must be 1–500' : null,
   qMarks:      v => v && (parseInt(v) < 1 || parseInt(v) > 100) ? 'Question marks must be 1–100' : null,
@@ -264,7 +280,7 @@ function Toast({ msg, type, onClose }) {
 
 // ── Badge helpers ─────────────────────────────────────────────
 function GradeBadge({ grade }) {
-  const cls = { A: 'badge-a', B: 'badge-b', C: 'badge-c', Fail: 'badge-fail' }[grade] || 'badge-c';
+  const cls = { S: 'badge-s', A: 'badge-a', B: 'badge-b', C: 'badge-c', D: 'badge-d', E: 'badge-e', Fail: 'badge-fail' }[grade] || 'badge-c';
   return React.createElement('span', { className: `badge ${cls}` }, grade);
 }
 function StatusBadge({ status }) {
@@ -389,7 +405,7 @@ function Modal({ title, fields, values, onChange, onSave, onClose, extra, errors
                 type: f.type || 'text',
                 value: values[f.key] || '',
                 placeholder: f.placeholder,
-                min: f.min, max: f.max,
+                min: f.min, max: f.max, step: f.step,
                 onChange: e => onChange(f.key, e.target.value)
               }),
           err && React.createElement('div', { className: 'field-error' }, '⚠ ' + err)
@@ -451,9 +467,9 @@ const DEMO_ATTEMPTS = [
   { attempt_ID: 3, reg_no: 'CS2021001', student_name: 'Arjun Sharma', exam_title: 'OS Unit Test 1', start_time: '2024-10-20 09:00', submit_time: '2024-10-20 09:55', score: 45 },
 ];
 const DEMO_RESULTS = [
-  { result_ID: 1, attempt_ID: 1, student_name: 'Arjun Sharma', reg_no: 'CS2021001', exam_title: 'DBMS Mid-Term',  marks_obtained: 92, grade: 'A',    status: 'Pass' },
-  { result_ID: 2, attempt_ID: 2, student_name: 'Priya Nair',   reg_no: 'CS2021002', exam_title: 'DBMS Mid-Term',  marks_obtained: 78, grade: 'B',    status: 'Pass' },
-  { result_ID: 3, attempt_ID: 3, student_name: 'Arjun Sharma', reg_no: 'CS2021001', exam_title: 'OS Unit Test 1', marks_obtained: 45, grade: 'Fail', status: 'Fail' },
+  { result_ID: 1, attempt_ID: 1, student_name: 'Arjun Sharma', reg_no: 'CS2021001', exam_title: 'DBMS Mid-Term',  marks_obtained: 92, class_average: 65, std_dev: 12, grade: 'S',    status: 'Pass' },
+  { result_ID: 2, attempt_ID: 2, student_name: 'Priya Nair',   reg_no: 'CS2021002', exam_title: 'DBMS Mid-Term',  marks_obtained: 78, class_average: 65, std_dev: 12, grade: 'A',    status: 'Pass' },
+  { result_ID: 3, attempt_ID: 3, student_name: 'Arjun Sharma', reg_no: 'CS2021001', exam_title: 'OS Unit Test 1', marks_obtained: 45, class_average: 40, std_dev: 6,  grade: 'Fail', status: 'Fail' },
 ];
 
 // ══════════════════════════════════════════════════════════════
@@ -508,10 +524,13 @@ function Dashboard() {
       React.createElement('div', { className: 'section-title' }, '🏅 Grade Calculation Rules'),
       React.createElement('div', { className: 'grade-legend' },
         [
-          { grade: 'A',    range: '≥ 90 marks', cls: 'badge-a' },
-          { grade: 'B',    range: '75 – 89',    cls: 'badge-b' },
-          { grade: 'C',    range: '50 – 74',    cls: 'badge-c' },
-          { grade: 'Fail', range: '< 50 marks', cls: 'badge-fail' },
+          { grade: 'S',    range: '≥ μ + 1.5σ',          cls: 'badge-s' },
+          { grade: 'A',    range: 'μ + 0.5σ to μ + 1.5σ', cls: 'badge-a' },
+          { grade: 'B',    range: 'μ − 0.5σ to μ + 0.5σ', cls: 'badge-b' },
+          { grade: 'C',    range: 'μ − 1.5σ to μ − 0.5σ', cls: 'badge-c' },
+          { grade: 'D',    range: 'μ − 2σ to μ − 1.5σ',   cls: 'badge-d' },
+          { grade: 'E',    range: '< μ − 2σ',             cls: 'badge-e' },
+          { grade: 'Fail', range: 'marks < 50 (always)',  cls: 'badge-fail' },
         ].map(g =>
           React.createElement('div', { className: 'grade-item', key: g.grade },
             React.createElement('span', { className: `badge ${g.cls}` }, g.grade),
@@ -528,18 +547,29 @@ function Dashboard() {
 
 function GradeCalculator() {
   const [marks, setMarks] = useState('');
-  const result = marks !== '' ? calcGrade(marks) : null;
-  return React.createElement('div', { style: { display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' } },
-    React.createElement('input', {
-      className: 'form-input', type: 'number', min: 0, max: 100,
-      placeholder: 'Enter marks (0–100)', style: { width: 220 },
-      value: marks, onChange: e => setMarks(e.target.value)
-    }),
-    result && React.createElement('div', { style: { display: 'flex', gap: 10, alignItems: 'center' } },
-      React.createElement('span', { style: { color: 'var(--muted)', fontSize: 13 } }, 'Grade:'),
-      React.createElement(GradeBadge, { grade: result.grade }),
-      React.createElement('span', { style: { color: 'var(--muted)', fontSize: 13 } }, 'Status:'),
-      React.createElement(StatusBadge, { status: result.status }),
+  const [avg, setAvg]     = useState('');
+  const [sd, setSd]       = useState('');
+  const result = calcGrade(marks, avg, sd);
+  const cuts = result ? gradeCutoffs(parseFloat(avg), parseFloat(sd)) : null;
+  const fmt = n => Number(n.toFixed(2));
+  const field = (ph, val, set) => React.createElement('input', {
+    className: 'form-input', type: 'number', min: 0, step: 'any',
+    placeholder: ph, style: { width: 170 }, value: val, onChange: e => set(e.target.value)
+  });
+  return React.createElement('div', null,
+    React.createElement('div', { style: { display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' } },
+      field('Your marks', marks, setMarks),
+      field('Class average', avg, setAvg),
+      field('Standard deviation', sd, setSd),
+      result && React.createElement('div', { style: { display: 'flex', gap: 10, alignItems: 'center' } },
+        React.createElement('span', { style: { color: 'var(--muted)', fontSize: 13 } }, 'Grade:'),
+        React.createElement(GradeBadge, { grade: result.grade }),
+        React.createElement('span', { style: { color: 'var(--muted)', fontSize: 13 } }, 'Status:'),
+        React.createElement(StatusBadge, { status: result.status }),
+      )
+    ),
+    cuts && React.createElement('div', { style: { marginTop: 10, fontSize: 12, color: 'var(--muted)', fontFamily: "'DM Mono', monospace" } },
+      `Cutoffs → S ≥ ${fmt(cuts.S)} · A ≥ ${fmt(cuts.A)} · B ≥ ${fmt(cuts.B)} · C ≥ ${fmt(cuts.C)} · D ≥ ${fmt(cuts.D)} · E below · Fail < ${PASS_MARK}`
     )
   );
 }
@@ -1094,7 +1124,7 @@ function AttemptsPage({ toast }) {
       ],
       data, searchPlaceholder: '🔍  Search by reg_no, exam...',
       onAdd:   () => { setForm({}); setErrors({}); setModal({ isNew: true }); },
-      onEdit:  row => { setForm({...row}); setErrors({}); setModal({ ...row, isNew: false }); },
+      onEdit:  row => { setForm({...row, start_time: row.start_time?.replace(' ','T').slice(0,16), submit_time: row.submit_time?.replace(' ','T').slice(0,16)}); setErrors({}); setModal({ ...row, isNew: false }); },
       onDelete: del,
     }),
     modal && React.createElement(Modal, {
@@ -1126,8 +1156,13 @@ function ResultsPage({ toast }) {
   const load = () => fetch(`${API}/attempts/results/all`).then(r => r.json()).then(setData).catch(() => setData(DEMO_RESULTS));
   useEffect(() => { load(); }, []);
 
-  const RULES_NEW  = { attempt_ID: [validators.required, validators.posInt], marks_obtained: [validators.required, validators.marks] };
-  const RULES_EDIT = { marks_obtained: [validators.required, validators.marks] };
+  const STAT_RULES = {
+    marks_obtained: [validators.required, validators.marks],
+    class_average:  [validators.required, validators.marks],
+    std_dev:        [validators.required, validators.sd],
+  };
+  const RULES_NEW  = { attempt_ID: [validators.required, validators.posInt], ...STAT_RULES };
+  const RULES_EDIT = STAT_RULES;
 
   const save = async () => {
     const errs = validate(modal.isNew ? RULES_NEW : RULES_EDIT, form);
@@ -1151,7 +1186,7 @@ function ResultsPage({ toast }) {
   return React.createElement('div', null,
     React.createElement('div', { className: 'page-header' },
       React.createElement('div', { className: 'page-title' }, '🏅 Results'),
-      React.createElement('div', { className: 'page-sub' }, 'Grades auto-calculated from marks obtained')
+      React.createElement('div', { className: 'page-sub' }, 'Grades auto-calculated from marks, class average and standard deviation')
     ),
     React.createElement(DataTable, {
       columns: [
@@ -1160,12 +1195,14 @@ function ResultsPage({ toast }) {
         { key: 'reg_no',         label: 'Reg No', code: true },
         { key: 'exam_title',     label: 'Exam' },
         { key: 'marks_obtained', label: 'Marks', render: v => React.createElement('strong', { style: { color: 'var(--white)' } }, v) },
+        { key: 'class_average',  label: 'Class Avg', render: v => v ?? '—' },
+        { key: 'std_dev',        label: 'SD',        render: v => v ?? '—' },
         { key: 'grade',  label: 'Grade',  render: v => React.createElement(GradeBadge, { grade: v }) },
         { key: 'status', label: 'Status', render: v => React.createElement(StatusBadge, { status: v }) },
       ],
       data, searchPlaceholder: '🔍  Search by student, grade, status...',
       onAdd:   () => { setForm({}); setErrors({}); setPreview(null); setModal({ isNew: true }); },
-      onEdit:  row => { setForm({...row}); setErrors({}); setPreview(calcGrade(row.marks_obtained)); setModal({ ...row, isNew: false }); },
+      onEdit:  row => { setForm({...row}); setErrors({}); setPreview(calcGrade(row.marks_obtained, row.class_average, row.std_dev)); setModal({ ...row, isNew: false }); },
       onDelete: del,
     }),
     modal && React.createElement(Modal, {
@@ -1173,12 +1210,15 @@ function ResultsPage({ toast }) {
       fields: [
         modal.isNew && { key: 'attempt_ID',     label: 'Attempt ID',     type: 'number', placeholder: '1', required: true },
         { key: 'marks_obtained', label: 'Marks Obtained (0–100)', type: 'number', placeholder: '0–100', min: 0, max: 100, required: true },
+        { key: 'class_average',  label: 'Class Average (0–100)',  type: 'number', placeholder: 'e.g. 65', min: 0, max: 100, step: 'any', required: true },
+        { key: 'std_dev',        label: 'Standard Deviation (> 0)', type: 'number', placeholder: 'e.g. 12', min: 0, step: 'any', required: true },
       ].filter(Boolean),
       values: form, errors,
       onChange: (k, v) => {
-        setForm(p => ({ ...p, [k]: v }));
+        const next = { ...form, [k]: v };
+        setForm(next);
         setErrors(p => ({ ...p, [k]: null }));
-        if (k === 'marks_obtained' && v !== '') setPreview(calcGrade(v));
+        setPreview(calcGrade(next.marks_obtained, next.class_average, next.std_dev));
       },
       onSave: save, onClose: () => setModal(null),
       extra: preview && React.createElement('div', {

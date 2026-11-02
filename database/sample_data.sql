@@ -75,10 +75,15 @@ INSERT INTO ATTEMPT (reg_no, exam_ID, start_time, submit_time, score) VALUES
 ('CS2021002', 4, '2024-11-10 10:00:00', '2024-11-10 11:50:00', 62),
 ('CS2022005', 1, '2024-10-15 10:00:00', '2024-10-15 11:15:00', 38);
 
--- RESULTS (grade: >=90→A, 75-89→B, 50-74→C, <50→Fail)
-INSERT INTO RESULT (attempt_ID, marks_obtained, grade, status) VALUES
-(1, 92, 'A',    'Pass'),
-(2, 78, 'B',    'Pass'),
-(3, 45, 'Fail', 'Fail'),
-(4, 62, 'C',    'Pass'),
-(5, 38, 'Fail', 'Fail');
+-- RESULTS (relative grading: marks, class average, class SD)
+--   marks < 50 -> Fail; else S >= avg+1.5sd, A >= avg+0.5sd, B >= avg-0.5sd,
+--   C >= avg-1.5sd, D >= avg-2sd, E below that
+-- Exam 1 (avg 65, sd 12): S>=83  A>=71  B>=59  C>=47  D>=41
+-- Exam 2 (avg 40, sd 6)
+-- Exam 4 (avg 60, sd 10): S>=75  A>=65  B>=55  C>=45  D>=40
+INSERT INTO RESULT (attempt_ID, marks_obtained, class_average, std_dev, grade, status) VALUES
+(1, 92, 65, 12, 'S',    'Pass'),
+(2, 78, 65, 12, 'A',    'Pass'),
+(3, 45, 40,  6, 'Fail', 'Fail'),
+(4, 62, 60, 10, 'B',    'Pass'),
+(5, 38, 65, 12, 'Fail', 'Fail');
