@@ -16,6 +16,7 @@ app.use('/api/enrollments', require('./routes/enrollments'));
 app.use('/api/exams',       require('./routes/exams'));
 app.use('/api/questions',   require('./routes/questions'));
 app.use('/api/attempts',    require('./routes/attempts'));
+app.use('/api/reports',     require('./routes/reports'));
 
 // Health check
 app.get('/', (req, res) => {
@@ -32,6 +33,8 @@ app.get('/', (req, res) => {
       'GET/POST        /api/questions',
       'GET/POST        /api/attempts',
       'GET/POST        /api/attempts/results/all',
+      'POST            /api/exams/:id/grade   (stored procedure)',
+      'GET             /api/reports/exam-stats | course-summary | top-students | audit | student/:reg_no',
     ]
   });
 });

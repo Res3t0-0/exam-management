@@ -77,7 +77,7 @@ router.post('/', async (req, res) => {
     res.status(201).json({ message: 'Instructor created', instructor_code, user_ID: linkedUserId });
   } catch (err) {
     if (conn) await conn.rollback();
-    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Instructor code or email already exists' });
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Instructor code or user already assigned or email already exists' });
     res.status(500).json({ error: err.message });
   } finally {
     if (conn) conn.release();
@@ -88,6 +88,9 @@ router.post('/', async (req, res) => {
 router.put('/:code', async (req, res) => {
   const { school, name, email, phone, dob } = req.body;
 
+  if (!school) {
+    return res.status(400).json({ error: 'school is required' });
+  }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
     return res.status(400).json({ error: 'Invalid email format' });
   if (phone && !/^\d{10}$/.test(phone))
@@ -126,18 +129,50 @@ router.put('/:code', async (req, res) => {
   }
 });
 
-// DELETE instructor
+// DELETE instructor (clean up USER if no longer referenced elsewhere)
 router.delete('/:code', async (req, res) => {
+  let conn;
   try {
-    const [rows] = await db.query(
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    const [instructors] = await conn.query(
       'SELECT user_ID FROM INSTRUCTOR WHERE instructor_code = ?',
       [req.params.code]
     );
-    if (!rows.length) return res.status(404).json({ error: 'Instructor not found' });
+    if (!instructors.length) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Instructor not found' });
+    }
 
-    await db.query('DELETE FROM INSTRUCTOR WHERE instructor_code = ?', [req.params.code]);
+    const userId = instructors[0].user_ID;
+
+    // Delete instructor record
+    await conn.query('DELETE FROM INSTRUCTOR WHERE instructor_code = ?', [req.params.code]);
+
+    // Check if the user is still referenced in STUDENT or another INSTRUCTOR
+    const [studentRefs] = await conn.query(
+      'SELECT reg_no FROM STUDENT WHERE user_ID = ? LIMIT 1',
+      [userId]
+    );
+    const [instructorRefs] = await conn.query(
+      'SELECT instructor_code FROM INSTRUCTOR WHERE user_ID = ? LIMIT 1',
+      [userId]
+    );
+
+    // If no other specialization references this user, delete the base USER record
+    if (!studentRefs.length && !instructorRefs.length) {
+      await conn.query('DELETE FROM USER WHERE user_ID = ?', [userId]);
+    }
+
+    await conn.commit();
     res.json({ message: 'Instructor deleted' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    if (conn) await conn.rollback();
+    res.status(500).json({ error: err.message });
+  } finally {
+    if (conn) conn.release();
+  }
 });
 
 module.exports = router;
