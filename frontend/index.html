@@ -223,20 +223,21 @@ const { useState, useEffect, useCallback } = React;
 const API = 'http://localhost:5000/api';
 
 // ── Grade Calculator (relative grading) ───────────────────────
-// Must stay in sync with calculateGrade() in backend/routes/attempts.js
-const PASS_MARK = 50;
-
-// Lower bound (inclusive) of each grade band for a given class average and SD
+// Live preview only. The real grade is computed by the database: keep in sync with fn_grade() in database/schema.sql
+// Pass mark is 40% of total marks. Default total marks for standalone preview is 100.
 function gradeCutoffs(avg, sd) {
   const cut = k => Math.round((avg + k * sd) * 1e6) / 1e6;
   return { S: cut(1.5), A: cut(0.5), B: cut(-0.5), C: cut(-1.5), D: cut(-2) };
 }
 
 // Returns { grade, status }, or null while marks / average / SD are missing or invalid
-function calcGrade(m, avg, sd) {
-  const marks = parseFloat(m), mu = parseFloat(avg), sigma = parseFloat(sd);
-  if ([marks, mu, sigma].some(isNaN) || sigma <= 0) return null;
-  if (marks < PASS_MARK) return { grade: 'Fail', status: 'Fail' };
+function calcGrade(m, avg, sd, total = 100) {
+  const marks = parseFloat(m), mu = parseFloat(avg), sigma = parseFloat(sd), tot = parseFloat(total) || 100;
+  if ([marks, mu, sigma].some(isNaN) || sigma < 0 || tot <= 0) return null;
+  // Below 40% of exam total marks is Fail
+  if (marks < 0.40 * tot) return { grade: 'Fail', status: 'Fail' };
+  // Fallback for zero SD (all scores identical)
+  if (sigma === 0) return { grade: 'E', status: 'Pass' };
   const c = gradeCutoffs(mu, sigma);
   const grade = marks >= c.S ? 'S' : marks >= c.A ? 'A' : marks >= c.B ? 'B'
               : marks >= c.C ? 'C' : marks >= c.D ? 'D' : 'E';
@@ -529,8 +530,8 @@ function Dashboard() {
           { grade: 'B',    range: 'μ − 0.5σ to μ + 0.5σ', cls: 'badge-b' },
           { grade: 'C',    range: 'μ − 1.5σ to μ − 0.5σ', cls: 'badge-c' },
           { grade: 'D',    range: 'μ − 2σ to μ − 1.5σ',   cls: 'badge-d' },
-          { grade: 'E',    range: '< μ − 2σ',             cls: 'badge-e' },
-          { grade: 'Fail', range: 'marks < 50 (always)',  cls: 'badge-fail' },
+          { grade: 'E',    range: '< μ − 2σ (or SD=0 pass)', cls: 'badge-e' },
+          { grade: 'Fail', range: '< 40% of max marks',   cls: 'badge-fail' },
         ].map(g =>
           React.createElement('div', { className: 'grade-item', key: g.grade },
             React.createElement('span', { className: `badge ${g.cls}` }, g.grade),
@@ -569,7 +570,7 @@ function GradeCalculator() {
       )
     ),
     cuts && React.createElement('div', { style: { marginTop: 10, fontSize: 12, color: 'var(--muted)', fontFamily: "'DM Mono', monospace" } },
-      `Cutoffs → S ≥ ${fmt(cuts.S)} · A ≥ ${fmt(cuts.A)} · B ≥ ${fmt(cuts.B)} · C ≥ ${fmt(cuts.C)} · D ≥ ${fmt(cuts.D)} · E below · Fail < ${PASS_MARK}`
+      `Cutoffs → S ≥ ${fmt(cuts.S)} · A ≥ ${fmt(cuts.A)} · B ≥ ${fmt(cuts.B)} · C ≥ ${fmt(cuts.C)} · D ≥ ${fmt(cuts.D)} · E below · Fail < 40%`
     )
   );
 }
@@ -1233,15 +1234,135 @@ function ResultsPage({ toast }) {
 }
 
 // ══════════════════════════════════════════════════════════════
+//  PAGE: REPORTS  (built on database views, a window function,
+//  a stored procedure and the trigger-filled audit table)
+// ══════════════════════════════════════════════════════════════
+function ReportsPage({ toast }) {
+  const [stats, setStats]     = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [top, setTop]         = useState([]);
+  const [audit, setAudit]     = useState([]);
+  const [busy, setBusy]       = useState(null);
+
+  const get = (path, set) => fetch(`${API}/reports/${path}`)
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+    .then(d => set(Array.isArray(d) ? d : []))
+    .catch(() => toast(`Could not load "${path}" — is the latest schema.sql loaded and the backend running?`, 'error'));
+  const loadAll = () => { get('exam-stats', setStats); get('course-summary', setCourses); get('top-students', setTop); get('audit', setAudit); };
+  useEffect(() => { loadAll(); }, []);
+
+  // Runs the stored procedure sp_grade_exam through POST /api/exams/:id/grade
+  const autoGrade = async row => {
+    setBusy(row.exam_ID);
+    try {
+      const r = await fetch(`${API}/exams/${row.exam_ID}/grade`, { method: 'POST' });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Grading failed');
+      const mix = (j.distribution || []).map(d => `${d.grade} ${d.students}`).join(', ');
+      toast(`Exam ${row.exam_ID} graded — ${mix}`, 'success');
+      loadAll();
+    } catch (e) { toast(e.message, 'error'); }
+    setBusy(null);
+  };
+
+  const num = v => React.createElement('span', { style: { fontVariantNumeric: 'tabular-nums' } }, v ?? '—');
+  const section = (title, note, table) => React.createElement('div', { style: { marginBottom: 28 } },
+    React.createElement('div', { className: 'section-title' }, title),
+    React.createElement('div', { className: 'info-box' }, note),
+    table
+  );
+
+  return React.createElement('div', null,
+    React.createElement('div', { className: 'page-header' },
+      React.createElement('div', { className: 'page-title' }, '📊 Reports'),
+      React.createElement('div', { className: 'page-sub' }, 'Every table below is produced by the database itself: views, window functions, a stored procedure and triggers')
+    ),
+
+    section('📈 Exam statistics',
+      'View: vw_exam_statistics (LEFT JOINs + GROUP BY). The Auto-grade button calls the stored procedure sp_grade_exam, which computes the class average and SD and (re)grades every submitted attempt in one transaction.',
+      React.createElement(DataTable, {
+        columns: [
+          { key: 'exam_ID',    label: 'Exam#', code: true },
+          { key: 'exam_title', label: 'Exam' },
+          { key: 'course_ID',  label: 'Course', code: true },
+          { key: 'attempts',   label: 'Attempts',  render: num },
+          { key: 'submitted',  label: 'Submitted', render: num },
+          { key: 'graded',     label: 'Graded',    render: num },
+          { key: 'avg_marks',  label: 'Avg marks', render: num },
+          { key: 'pass_rate',  label: 'Pass %',    render: v => v == null ? '—' : v + '%' },
+          { key: '_grade',     label: 'Auto-grade', render: (v, row) => React.createElement('button', {
+              className: 'btn btn-ghost btn-sm', disabled: busy === row.exam_ID || !row.submitted,
+              onClick: e => { e.stopPropagation(); autoGrade(row); }
+            }, busy === row.exam_ID ? '…' : '⚙ Grade') },
+        ],
+        data: stats, searchPlaceholder: '🔍  Search exams...'
+      })
+    ),
+
+    section('🏆 Top students',
+      'RANK() OVER (ORDER BY AVG(marks_obtained) DESC) on the view vw_student_results. Only students with at least 3 graded exams are ranked.',
+      React.createElement(DataTable, {
+        columns: [
+          { key: 'rnk',        label: 'Rank', render: v => React.createElement('strong', { style: { color: 'var(--accent2)' } }, '#' + v) },
+          { key: 'reg_no',     label: 'Reg No', code: true },
+          { key: 'name',       label: 'Student' },
+          { key: 'department', label: 'Department' },
+          { key: 'avg_marks',  label: 'Avg marks', render: num },
+          { key: 'exams',      label: 'Exams',     render: num },
+        ],
+        data: top, searchPlaceholder: '🔍  Search students...'
+      })
+    ),
+
+    section('📖 Course summary',
+      'View: vw_course_summary (LEFT JOINs so courses without an instructor still appear, plus correlated subqueries for the counts).',
+      React.createElement(DataTable, {
+        columns: [
+          { key: 'course_ID',         label: 'Course', code: true },
+          { key: 'course_name',       label: 'Name' },
+          { key: 'department',        label: 'Department' },
+          { key: 'credits',           label: 'Credits',  render: num },
+          { key: 'instructor_name',   label: 'Instructor' },
+          { key: 'enrolled_students', label: 'Enrolled', render: num },
+          { key: 'exams',             label: 'Exams',    render: num },
+        ],
+        data: courses, searchPlaceholder: '🔍  Search courses...'
+      })
+    ),
+
+    section('🕵️ Audit log',
+      'Table RESULT_AUDIT is written only by the triggers trg_result_au and trg_result_ad. Edit or delete a result on the Results page and the change shows up here. It is empty until something changes.',
+      React.createElement(DataTable, {
+        columns: [
+          { key: 'audit_ID',   label: 'Audit#',  code: true },
+          { key: 'result_ID',  label: 'Result#', code: true },
+          { key: 'action',     label: 'Action' },
+          { key: 'old_marks',  label: 'Old marks', render: num },
+          { key: 'new_marks',  label: 'New marks', render: num },
+          { key: 'old_grade',  label: 'Old grade', render: v => v ? React.createElement(GradeBadge, { grade: v }) : '—' },
+          { key: 'new_grade',  label: 'New grade', render: v => v ? React.createElement(GradeBadge, { grade: v }) : '—' },
+          { key: 'changed_by', label: 'By' },
+          { key: 'changed_at', label: 'When', render: v => v ? String(v).replace('T', ' ').slice(0, 19) : '—' },
+        ],
+        data: audit, searchPlaceholder: '🔍  Search audit log...'
+      })
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
 //  ROOT APP
 // ══════════════════════════════════════════════════════════════
 function App() {
   const [page, setPage]   = useState('dashboard');
   const [toast, setToast] = useState(null);
 
+  // one timer at a time: a newer toast must not be cleared by the previous toast's timer
+  const toastTimer = React.useRef(null);
   const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3500);
+    clearTimeout(toastTimer.current);
+    setToast({ msg, type, id: Date.now() + Math.random() });
+    toastTimer.current = setTimeout(() => setToast(null), 3500);
   };
 
   const NAV = [
@@ -1254,6 +1375,7 @@ function App() {
     { id: 'questions',   label: 'Questions',    icon: '❓' },
     { id: 'attempts',    label: 'Attempts',     icon: '✅', section: 'ASSESSMENTS' },
     { id: 'results',     label: 'Results',      icon: '🏅' },
+    { id: 'reports',     label: 'Reports',      icon: '📊', section: 'INSIGHTS' },
   ];
 
   const renderPage = () => {
@@ -1268,6 +1390,7 @@ function App() {
       case 'questions':   return React.createElement(QuestionsPage,   p);
       case 'attempts':    return React.createElement(AttemptsPage,    p);
       case 'results':     return React.createElement(ResultsPage,     p);
+      case 'reports':     return React.createElement(ReportsPage,     p);
       default:            return null;
     }
   };
@@ -1300,7 +1423,7 @@ function App() {
       )
     ),
     React.createElement('main', { className: 'main' }, renderPage()),
-    toast && React.createElement(Toast, { ...toast, onClose: () => setToast(null) })
+    toast && React.createElement(Toast, { key: toast.id, ...toast, onClose: () => setToast(null) })
   );
 }
 
